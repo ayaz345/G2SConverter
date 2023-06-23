@@ -33,11 +33,7 @@ def ai_dconvolution(iterations):
         print('Variable "Iterations" was set to 10')
         iterations = 10
     count = cv2.cuda.getCudaEnabledDeviceCount()
-    if count==0:
-        os.environ['CUDA_VISIBLE_DEVICES'] = ''
-    else:
-        os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-
+    os.environ['CUDA_VISIBLE_DEVICES'] = '' if count==0 else '0'
     try:
         args = DeblurNamespace(model='color',
                                phase='test',
@@ -57,7 +53,7 @@ def ai_dconvolution(iterations):
         return
     for i in range(0, iterations):
         try:
-            print("Deconvolution iteration: "+str(i+1))
+            print(f"Deconvolution iteration: {str(i + 1)}")
             deblur.test(args.height, args.width, args.input_path, args.output_path)
         except:
             print("Something went wrong during model execution")
@@ -75,22 +71,24 @@ def upscale_image(path_to_image, scaling_factor):
             scaling_factor = 4
         else:
             scaling_factor = 2
-        print("We've decided to use scaling factor: "+str(scaling_factor))
+        print(f"We've decided to use scaling factor: {str(scaling_factor)}")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = RealESRGAN(device, scale=scaling_factor)
-    model.load_weights('./ai/upscaling_weights/RealESRGAN-x'+str(scaling_factor)+'.pth')
+    model.load_weights(
+        f'./ai/upscaling_weights/RealESRGAN-x{str(scaling_factor)}.pth'
+    )
     image = Image.open(path_to_image).convert('RGB')
-    print("Processing Image: " + path_to_image)
+    print(f"Processing Image: {path_to_image}")
     sr_image = model.predict(image)
     os.remove(path_to_image)
     sr_image.save(path_to_image)
-    print("Upscaling of " + path_to_image + " done!")
+    print(f"Upscaling of {path_to_image} done!")
 
 def make_normalmap(img_src, bump_path, overlap):
     #based on https://github.com/HugoTini/DeepBump
     img = np.array(Image.open(img_src)) / 255.0
     img = np.transpose(img, [2, 0, 1])
-    img = np.mean(img[0:3], axis=0, keepdims=True)
+    img = np.mean(img[:3], axis=0, keepdims=True)
     print('Tilling of texture: ', img_src)
     tile_size = 256
     overlaps = {'small': tile_size // 6, 'medium': tile_size // 4, 'large': tile_size // 2}
@@ -103,7 +101,7 @@ def make_normalmap(img_src, bump_path, overlap):
     pred_img = infer.tiles_merge(pred_tiles, (stride_size, stride_size), (3, img.shape[1], img.shape[2]), paddings)
     pred_img = pred_img.transpose((1, 2, 0))
     pred_img = Image.fromarray((pred_img * 255.0).astype(np.uint8))
-    pred_img.save(bump_path[:len(bump_path)-4]+"_watchable.png")
+    pred_img.save(f"{bump_path[:len(bump_path) - 4]}_watchable.png")
     pred_img.save(bump_path, compression=None)
 
 def next_pow_of_two(x):
@@ -112,17 +110,20 @@ def next_pow_of_two(x):
 
 def is_imagefile(i):
     i = i.lower()
-    if i.endswith('.bmp') or i.endswith('.tga') or i.endswith('.png') or i.endswith(".jpeg") or i.endswith(".jpg"):
-        return True
-    else:
-        return False
+    return bool(
+        i.endswith('.bmp')
+        or i.endswith('.tga')
+        or i.endswith('.png')
+        or i.endswith(".jpeg")
+        or i.endswith(".jpg")
+    )
 
 def reset_picture(x):
     #converts the length and width values of the image to the nearest power of two
     try:
         img1 = Image.open(x)
     except:
-        print("Something went wrong during opening: "+x)
+        print(f"Something went wrong during opening: {x}")
         return
     width, height = img1.size
     img1 = img1.resize((next_pow_of_two(width),next_pow_of_two(height)))

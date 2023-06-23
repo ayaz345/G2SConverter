@@ -162,8 +162,8 @@ class DEBLUR(object):
             loss = tf.reduce_mean((gt_i - x_unwrap[i]) ** 2)
             self.loss_total += loss
 
-            tf.summary.image('out_' + str(i), im2uint8(x_unwrap[i]))
-            tf.summary.scalar('loss_' + str(i), loss)
+            tf.summary.image(f'out_{str(i)}', im2uint8(x_unwrap[i]))
+            tf.summary.scalar(f'loss_{str(i)}', loss)
 
         # losses
         tf.summary.scalar('loss_total', self.loss_total)
@@ -183,7 +183,10 @@ class DEBLUR(object):
                 grads_and_vars = train_op.compute_gradients(
                     loss, var_list=var_list)
                 unchanged_gvs = [
-                    (grad, var) for grad, var in grads_and_vars if not 'LSTM' in var.name]
+                    (grad, var)
+                    for grad, var in grads_and_vars
+                    if 'LSTM' not in var.name
+                ]
                 rnn_grad = [grad for grad,
                             var in grads_and_vars if 'LSTM' in var.name]
                 rnn_var = [var for grad,
@@ -268,11 +271,11 @@ class DEBLUR(object):
 
     def load(self, sess, checkpoint_dir, step=None):
         print(" [*] Reading checkpoints...")
-        model_name = "deblur.model"
         ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
 
         if step is not None:
-            ckpt_name = model_name + '-' + str(step)
+            model_name = "deblur.model"
+            ckpt_name = f'{model_name}-{str(step)}'
             self.saver.restore(sess, os.path.join(checkpoint_dir, ckpt_name))
             print(" [*] Reading intermediate checkpoints... Success")
             return str(step)
@@ -305,7 +308,7 @@ class DEBLUR(object):
 
         for imgName in imgsName:
             blur = cv2.imread(os.path.join(input_path, imgName))
-            print("Working with: "+imgName)
+            print(f"Working with: {imgName}")
             h, w, c = blur.shape
             # make sure the width is larger than the height
             rot = False

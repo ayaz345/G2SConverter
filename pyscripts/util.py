@@ -11,9 +11,8 @@ if sys.version_info.major == 3:
 def im2uint8(x):
     if x.__class__ == tf.Tensor:
         return tf.cast(tf.clip_by_value(x, 0.0, 1.0) * 255.0, tf.uint8)
-    else:
-        t = np.clip(x, 0.0, 1.0) * 255.0
-        return t.astype(np.uint8)
+    t = np.clip(x, 0.0, 1.0) * 255.0
+    return t.astype(np.uint8)
 
 
 def ResnetBlock(x, dim, ksize, scope='rb'):
