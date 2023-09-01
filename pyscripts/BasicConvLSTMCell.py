@@ -46,10 +46,7 @@ class BasicConvLSTMCell(ConvRNNCell):
         """Long short-term memory cell (LSTM)."""
         with tf.variable_scope(scope or type(self).__name__):  # "BasicLSTMCell"
             # Parameters of gates are concatenated into one multiply for efficiency.
-            if self._state_is_tuple:
-                c, h = state
-            else:
-                c, h = tf.split(state, 2, 3)
+            c, h = state if self._state_is_tuple else tf.split(state, 2, 3)
             concat = _conv_linear(
                 [inputs, h], self.filter_size, self.num_features * 4, True)
 
@@ -71,13 +68,21 @@ def _conv_linear(args, filter_size, num_features, bias, bias_start=0.0, scope=No
     dtype = [a.dtype for a in args][0]
 
     with slim.arg_scope([slim.conv2d], stride=1, padding='SAME', activation_fn=None, scope=scope,
-                        weights_initializer=tf.truncated_normal_initializer(
-                            mean=0.0, stddev=1.0e-3),
-                        biases_initializer=bias and tf.constant_initializer(bias_start, dtype=dtype)):
-        if len(args) == 1:
-            res = slim.conv2d(args[0], num_features, [
-                              filter_size[0], filter_size[1]], scope='LSTM_conv')
-        else:
-            res = slim.conv2d(tf.concat(args, 3), num_features, [
-                              filter_size[0], filter_size[1]], scope='LSTM_conv')
-        return res
+                            weights_initializer=tf.truncated_normal_initializer(
+                                mean=0.0, stddev=1.0e-3),
+                            biases_initializer=bias and tf.constant_initializer(bias_start, dtype=dtype)):
+        return (
+            slim.conv2d(
+                args[0],
+                num_features,
+                [filter_size[0], filter_size[1]],
+                scope='LSTM_conv',
+            )
+            if len(args) == 1
+            else slim.conv2d(
+                tf.concat(args, 3),
+                num_features,
+                [filter_size[0], filter_size[1]],
+                scope='LSTM_conv',
+            )
+        )
